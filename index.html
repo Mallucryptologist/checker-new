@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polynomial Points Checker</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        .container {
+            display: flex;
+            height: 70vh;
+            margin-top: 5vh;
+        }
+        .trading-points, .staking-points {
+            width: 50%;
+            padding: 15px;
+            box-sizing: border-box;
+            transition: all 0.3s ease-in-out;
+            border-radius: 4px;
+            overflow-y: auto;
+        }
+        .trading-points:hover, .staking-points:hover {
+            border: 2px solid #0000FF;
+            box-shadow: 0 0 10px #0000FF;
+        }
+        h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        h2, p, .supply-control {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .supply-control {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .supply-control button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+        input {
+            display: block;
+            margin: 10px auto;
+            width: 80%;
+            max-width: 250px;
+        }
+        button {
+            display: block;
+            margin: 10px auto;
+        }
+        input, button {
+            padding: 8px;
+            font-size: 0.9em;
+            background-color: #222;
+            color: #fff;
+            border: 1px solid #00FF00;
+            border-radius: 5px;
+        }
+        button {
+            cursor: pointer;
+        }
+        .results {
+            margin-top: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        th, td {
+            padding: 6px;
+            text-align: left;
+            border: 1px solid #00FF00;
+        }
+        th {
+            background-color: #111;
+        }
+        
+        /* New styles for bottom sections */
+        .bottom-section {
+            height: 25vh;
+            overflow: hidden;
+            position: relative;
+            white-space: nowrap;
+        }
+        .bottom-container {
+            position: absolute;
+            display: flex;
+            height: 100%;
+            left: 0;
+            top: 0;
+        }
+        .bottom-box {
+            flex: 0 0 300px;
+            height: 20vh;
+            border: 2px solid #0000FF;
+            border-radius: 4px;
+            padding: 10px;
+            box-sizing: border-box;
+            margin-right: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            white-space: normal;
+            transition: box-shadow 0.3s ease;
+        }
+        .bottom-box:hover {
+            box-shadow: 0 0 10px #0000FF;
+        }
+        .bottom-box h3 {
+            text-align: center;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="trading-points">
+            <h2>Trading Points</h2>
+            <input type="number" id="userPoints" placeholder="Enter your points" value="10000">
+            <button onclick="calculateValues()">Check Value</button>
+            <p>% of token for trading:</p>
+            <div class="supply-control">
+                <button onclick="changeSupplyPercentage(-1)">-</button>
+                <span id="supplyPercentage">2.5%</span>
+                <button onclick="changeSupplyPercentage(1)">+</button>
+            </div>
+            <div class="results" id="results">
+                <p id="circulationPoints">Current Circulation Points: </p>
+                <p id="userPointsDisplay">Your Points: </p>
+                <div class="table-container">
+                    <table id="valuationTable">
+                        <thead>
+                            <tr>
+                                <th>Valuation</th>
+                                <th>Your Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Valuation rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="staking-points">
+            <h2>Staking Points</h2>
+            <input type="number" id="userStakingPoints" placeholder="Enter your staking points" value="10000">
+            <button onclick="calculateStakingValues()">Check Staking Value</button>
+            <p>% of token for staking:</p>
+            <div class="supply-control">
+                <button onclick="changeStakingSupplyPercentage(-1)">-</button>
+                <span id="stakingSupplyPercentage">2.5%</span>
+                <button onclick="changeStakingSupplyPercentage(1)">+</button>
+            </div>
+            <div class="results" id="stakingResults">
+                <p id="stakingCirculationPoints">Current Circulation Points: 20,000,000</p>
+                <p id="userStakingPointsDisplay">Your Staking Points: </p>
+                <div class="table-container">
+                    <table id="stakingValuationTable">
+                        <thead>
+                            <tr>
+                                <th>Valuation</th>
+                                <th>Your Staking Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Staking valuation rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-section">
+        <div class="bottom-container" id="bottomContainer">
+            <!-- Boxes will be dynamically added here -->
+        </div>
+    </div>
+
+    <script>
+        const initialPoints = 11000000; // 11 million
+        const dailyIncrement = 1000000;
+        const totalTokenSupply = 1000000000;  // 1 billion tokens
+        let supplyPercentage = 2.5;  // Initial percentage
+        let tokenSupplyForTradingPoints = (supplyPercentage / 100) * totalTokenSupply;
+        const valuations = [50000000, 75000000, 100000000, 250000000, 500000000, 1000000000, 2000000000];
+        const startTime = new Date().setUTCHours(14, 0, 0, 0); // Today at 2 PM UTC
+
+        function updateCurrentPoints() {
+            const now = new Date();
+            const initialStartTime = new Date(startTime);
+            const today2PM = new Date(now).setUTCHours(14, 0, 0, 0);
+
+            if (now < today2PM) {
+                return initialPoints; // Return initial points until today at 2 PM UTC
+            } else {
+                const daysSinceStart = Math.floor((now - initialStartTime) / (24 * 60 * 60 * 1000));
+                return initialPoints + (daysSinceStart * dailyIncrement);
+            }
+        }
+
+        function calculateValues() {
+            const userPointsInput = document.getElementById('userPoints');
+            const userPoints = userPointsInput.value ? parseInt(userPointsInput.value) : 0;
+            const currentTotalPoints = updateCurrentPoints();
+            
+            document.getElementById('userPointsDisplay').textContent = `Your Points: ${userPoints.toLocaleString()}`;
+            document.getElementById('circulationPoints').textContent = `Current Circulation Points: ${currentTotalPoints.toLocaleString()}`;
+
+            const tableBody = document.querySelector('#valuationTable tbody');
+            tableBody.innerHTML = ''; // Clear previous results
+
+            valuations.forEach(valuation => {
+                const userTokenAllocation = (userPoints / currentTotalPoints) * tokenSupplyForTradingPoints;
+                const dollarValue = (userTokenAllocation / totalTokenSupply) * valuation;
+
+                const row = tableBody.insertRow();
+                const valuationCell = row.insertCell(0);
+                const valueCell = row.insertCell(1);
+
+                valuationCell.textContent = valuation >= 1000000000 ? 
+                    `$${(valuation / 1000000000).toFixed(1)}B` : 
+                    `$${(valuation / 1000000).toFixed(0)}M`;
+                valueCell.textContent = `$${dollarValue.toFixed(2)}`;
+            });
+        }
+
+        function changeSupplyPercentage(change) {
+            supplyPercentage = Math.max(0.1, Math.min(100, supplyPercentage + change));
+            tokenSupplyForTradingPoints = (supplyPercentage / 100) * totalTokenSupply;
+            document.getElementById('supplyPercentage').textContent = supplyPercentage.toFixed(1) + '%';
+            calculateValues();
+        }
+
+        function createSnowflakes(num) {
+            for (let i = 0; i < num; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.className = 'snowflake';
+                snowflake.style.left = `${Math.random() * 100}vw`;
+                snowflake.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                snowflake.style.animationDelay = `${Math.random() * 5}s`;
+                document.body.appendChild(snowflake);
+            }
+        }
+
+        function updateCirculatingPoints() {
+            const currentTotalPoints = updateCurrentPoints();
+            document.getElementById('circulationPoints').textContent = `Current Circulation Points: ${currentTotalPoints.toLocaleString()}`;
+        }
+
+        let stakingSupplyPercentage = 2.5;  // Initial percentage for staking
+        let tokenSupplyForStakingPoints = (stakingSupplyPercentage / 100) * totalTokenSupply;
+
+        function changeStakingSupplyPercentage(change) {
+            stakingSupplyPercentage = Math.max(0.1, Math.min(100, stakingSupplyPercentage + change));
+            tokenSupplyForStakingPoints = (stakingSupplyPercentage / 100) * totalTokenSupply;
+            document.getElementById('stakingSupplyPercentage').textContent = stakingSupplyPercentage.toFixed(1) + '%';
+            calculateStakingValues();
+        }
+
+        function calculateStakingValues() {
+            const userStakingPoints = parseFloat(document.getElementById('userStakingPoints').value);
+            const circulationPoints = 20000000; // Constant 20 million points
+
+            document.getElementById('userStakingPointsDisplay').textContent = `Your Staking Points: ${userStakingPoints.toLocaleString()}`;
+
+            const stakingValuationTable = document.getElementById('stakingValuationTable').getElementsByTagName('tbody')[0];
+            stakingValuationTable.innerHTML = ''; // Clear existing rows
+
+            const valuations = [10000000, 25000000, 50000000, 100000000, 250000000, 500000000, 1000000000];
+
+            valuations.forEach(valuation => {
+                const row = stakingValuationTable.insertRow();
+                const valuationCell = row.insertCell(0);
+                const valueCell = row.insertCell(1);
+
+                const userTokenAllocation = (userStakingPoints / circulationPoints) * tokenSupplyForStakingPoints;
+                const dollarValue = (userTokenAllocation / totalTokenSupply) * valuation;
+
+                valuationCell.textContent = `$${valuation.toLocaleString()}`;
+                valueCell.textContent = `$${dollarValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            });
+        }
+
+        createSnowflakes(50);
+        updateCirculatingPoints(); // Update circulating points on load
+        setInterval(updateCirculatingPoints, 60000); // Update circulating points every minute
+
+        // Initialize with zero points
+        document.getElementById('userPoints').value = '';
+        document.getElementById('userPointsDisplay').textContent = 'Your Points: 0';
+        calculateValues();
+        calculateStakingValues();
+
+        // New JavaScript for animating boxes
+        const bottomContainer = document.getElementById('bottomContainer');
+        const boxWidth = 320; // 300px width + 20px margin
+        const boxesContent = [
+            { title: 'Box 1', content: 'Content for Box 1 goes here.' },
+            { title: 'Box 2', content: 'Content for Box 2 goes here.' },
+            { title: 'Box 3', content: 'Content for Box 3 goes here.' }
+        ];
+
+        function createBox(title, content) {
+            const box = document.createElement('div');
+            box.className = 'bottom-box';
+            box.innerHTML = `<h3>${title}</h3><p>${content}</p>`;
+            return box;
+        }
+
+        function populateBoxes() {
+            const containerWidth = bottomContainer.offsetWidth;
+            const boxesNeeded = Math.ceil(containerWidth / boxWidth) * 2 + 1;
+
+            for (let i = 0; i < boxesNeeded; i++) {
+                const boxContent = boxesContent[i % boxesContent.length];
+                bottomContainer.appendChild(createBox(boxContent.title, boxContent.content));
+            }
+        }
+
+        function animateBoxes() {
+            let position = 0;
+            const totalWidth = boxesContent.length * boxWidth;
+
+            function step() {
+                position -= 1; // Adjust this value to change speed
+                if (position <= -totalWidth) {
+                    position = 0;
+                }
+                bottomContainer.style.transform = `translateX(${position}px)`;
+                requestAnimationFrame(step);
+            }
+
+            step();
+        }
+
+        populateBoxes();
+        animateBoxes();
+
+        let isPaused = false;
+        bottomContainer.addEventListener('mouseenter', () => isPaused = true);
+        bottomContainer.addEventListener('mouseleave', () => isPaused = false);
+    </script>
+</body>
+</html>
